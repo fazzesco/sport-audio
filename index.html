@@ -1,0 +1,1522 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Padel Voice Tracker</title>
+    <!-- PWA Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Meta tags per PWA -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Padel Tracker">
+<meta name="theme-color" content="#2a5298">
+<meta name="msapplication-TileColor" content="#2a5298">
+
+<!-- Icone per Apple -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Ccircle cx='96' cy='96' r='88' fill='%232a5298' stroke='%23fff' stroke-width='6'/%3E%3Ctext x='96' y='120' text-anchor='middle' fill='white' font-size='80' font-family='Arial'%3E🎾%3C/text%3E%3C/svg%3E">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            overflow: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+            height: 100vh;
+        }
+
+        .container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Header */
+        .header {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .header .subtitle {
+            font-size: 14px;
+            color: #b3d9ff;
+            font-weight: normal;
+        }
+
+        /* Scoreboard - CENTRAL AND LARGE */
+        .scoreboard {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            border: 3px solid white;
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            z-index: 10;
+            backdrop-filter: blur(10px);
+            min-width: 320px;
+        }
+
+        .points-display {
+            font-size: 48px;
+            font-weight: bold;
+            color: #00ff00;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+            letter-spacing: 3px;
+        }
+
+        .games-sets {
+            font-size: 18px;
+            color: #fff;
+            margin-bottom: 15px;
+        }
+
+        .games-sets div {
+            margin-bottom: 5px;
+        }
+
+        .status {
+            font-size: 16px;
+            color: #ffff00;
+            margin-top: 10px;
+            text-align: center;
+            min-height: 24px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Voice Status Area */
+        .voice-status {
+            position: absolute;
+            top: 120px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 15px;
+            padding: 15px 20px;
+            text-align: center;
+            z-index: 10;
+            min-width: 280px;
+            backdrop-filter: blur(5px);
+        }
+
+        .voice-indicator {
+            font-size: 16px;
+            color: #b3d9ff;
+            margin-bottom: 8px;
+        }
+
+        .voice-indicator.listening {
+            color: #00ff00;
+            animation: pulse 1.5s infinite;
+        }
+
+        .last-announcement {
+            font-size: 14px;
+            color: #ffcc00;
+            font-style: italic;
+            min-height: 20px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Controls - LARGER BUTTONS */
+        .controls {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            width: 90%;
+            max-width: 600px;
+            z-index: 10;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 20px;
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .btn-team {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            padding: 20px 30px;
+            flex: 1;
+            min-width: 140px;
+            max-width: 180px;
+        }
+
+        .btn-team.red {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        }
+
+        .btn-team.blue {
+            background: linear-gradient(135deg, #2196f3 0%, #1976d2 100%);
+        }
+
+        .btn-team:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-control {
+            background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+            padding: 18px 25px;
+            min-width: 100px;
+        }
+
+        .btn-control.undo {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+        }
+
+        .btn-control.reset {
+            background: linear-gradient(135deg, #e91e63 0%, #c2185b 100%);
+        }
+
+        .btn-control:hover {
+            filter: brightness(1.1);
+        }
+
+        /* Audio Toggle */
+        .audio-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid white;
+            border-radius: 10px;
+            padding: 10px 15px;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            z-index: 10;
+            backdrop-filter: blur(5px);
+            font-weight: bold;
+        }
+
+        .audio-toggle:hover {
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        .audio-toggle.disabled {
+            background: rgba(100, 100, 100, 0.6);
+            border-color: #666;
+            color: #ccc;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 480px) {
+            .header h1 {
+                font-size: 20px;
+            }
+            
+            .header .subtitle {
+                font-size: 12px;
+            }
+            
+            .scoreboard {
+                min-width: 280px;
+                padding: 25px;
+            }
+            
+            .points-display {
+                font-size: 36px;
+                letter-spacing: 2px;
+            }
+            
+            .games-sets {
+                font-size: 16px;
+            }
+            
+            .voice-status {
+                min-width: 260px;
+                padding: 12px 15px;
+            }
+            
+            .voice-indicator {
+                font-size: 14px;
+            }
+            
+            .last-announcement {
+                font-size: 12px;
+            }
+            
+            .btn {
+                font-size: 16px;
+            }
+            
+            .btn-team {
+                padding: 15px 20px;
+                min-width: 120px;
+                max-width: 150px;
+            }
+            
+            .btn-control {
+                padding: 15px 20px;
+                min-width: 80px;
+            }
+            
+            .controls {
+                gap: 15px;
+                bottom: 60px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .header {
+                top: 10px;
+            }
+            
+            .header h1 {
+                font-size: 18px;
+            }
+            
+            .scoreboard {
+                padding: 20px;
+            }
+            
+            .points-display {
+                font-size: 32px;
+                margin-bottom: 10px;
+            }
+            
+            .voice-status {
+                top: 80px;
+                padding: 10px 15px;
+            }
+            
+            .controls {
+                bottom: 40px;
+            }
+            
+            .btn-team {
+                padding: 12px 18px;
+                font-size: 14px;
+            }
+            
+            .btn-control {
+                padding: 12px 18px;
+                font-size: 14px;
+            }
+        }
+
+        /* Visual Effects */
+        .btn-pressed {
+            animation: button-press 0.3s ease-in-out;
+        }
+
+        @keyframes button-press {
+            0% { transform: scale(1); }
+            50% { transform: scale(0.95); }
+            100% { transform: scale(1); }
+        }
+
+        /* Background Pattern */
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Team Color Indicators */
+        .team-colors {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 10;
+        }
+
+        .team-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .team-color.red {
+            background: #f44336;
+        }
+
+        .team-color.blue {
+            background: #2196f3;
+        }
+        /* ========================================
+   APPLE WATCH RESPONSIVE DESIGN (FIXED)
+   ======================================== */
+
+/* Apple Watch Detection - Tutti i modelli (38mm-49mm) */
+@media screen and (max-width: 500px) and (max-height: 600px) and (orientation: portrait) {
+    
+    /* BODY OTTIMIZZATO PER WATCH */
+    body {
+        font-size: 13px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scroll iOS */
+    }
+    
+    /* CONTAINER WATCH-CENTERED */
+    .container {
+        height: auto;
+        min-height: 100vh;
+        padding: 4px 8px;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        align-items: center; /* Centra tutto orizzontalmente */
+        justify-content: flex-start;
+    }
+    
+    /* HEADER COMPATTO E CENTRATO */
+    .header {
+        position: static;
+        transform: none;
+        margin-bottom: 8px;
+        text-align: center;
+        width: 100%;
+    }
+    
+    .header h1 {
+        font-size: 14px;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+    
+    .header .subtitle {
+        font-size: 9px;
+        opacity: 0.8;
+    }
+    
+    /* AUDIO TOGGLE COMPATTO */
+    .audio-toggle {
+        position: static;
+        margin: 0 0 8px 0;
+        font-size: 10px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        width: fit-content;
+    }
+    
+    /* VOICE STATUS OTTIMIZZATO */
+    .voice-status {
+        position: static;
+        transform: none;
+        margin: 0 0 8px 0;
+        padding: 6px 10px;
+        width: 95%;
+        max-width: 260px;
+        border-radius: 10px;
+    }
+    
+    .voice-indicator {
+        font-size: 10px;
+        margin-bottom: 3px;
+        line-height: 1.2;
+    }
+    
+    .last-announcement {
+        font-size: 9px;
+        line-height: 1.2;
+        min-height: 12px;
+    }
+    
+    /* SCOREBOARD WATCH-PERFECT */
+    .scoreboard {
+        position: static;
+        transform: none;
+        margin: 0 0 10px 0;
+        padding: 10px;
+        width: 95%;
+        max-width: 260px;
+        border-radius: 15px;
+        border-width: 2px;
+    }
+    
+    .points-display {
+        font-size: 22px;
+        margin-bottom: 6px;
+        letter-spacing: 1px;
+        font-weight: bold;
+    }
+    
+    .games-sets {
+        font-size: 11px;
+        margin-bottom: 6px;
+        line-height: 1.3;
+    }
+    
+    .games-sets div {
+        margin-bottom: 1px;
+    }
+    
+    .status {
+        font-size: 10px;
+        min-height: 14px;
+        line-height: 1.2;
+    }
+    
+    /* CONTROLS OTTIMIZZATI PER TOUCH */
+    .controls {
+        position: static;
+        transform: none;
+        margin: 0 0 12px 0;
+        width: 95%;
+        max-width: 260px;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+    }
+    
+    /* BOTTONI TEAM - GRANDI E TOUCH-FRIENDLY */
+    .btn-team {
+        width: 100%;
+        max-width: none;
+        min-width: auto;
+        padding: 12px 10px;
+        font-size: 13px;
+        font-weight: bold;
+        min-height: 40px; /* Apple touch guidelines */
+        border-radius: 15px;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+        line-height: 1.2;
+    }
+    
+    /* CONTROLLI SECONDARI IN RIGA */
+    .controls-secondary {
+        display: flex;
+        width: 100%;
+        gap: 8px;
+        justify-content: space-between;
+        margin-top: 4px;
+    }
+    
+    .btn-control {
+        flex: 1;
+        min-width: auto;
+        padding: 10px 6px;
+        font-size: 11px;
+        min-height: 36px;
+        border-radius: 12px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        line-height: 1.1;
+    }
+    
+    /* NASCONDI ELEMENTI NON ESSENZIALI */
+    .team-colors {
+        display: none;
+    }
+    
+    /* BACKGROUND PATTERN PIÙ SOTTILE */
+    .container::before {
+        opacity: 0.3; /* Meno invasivo su schermo piccolo */
+    }
+}
+
+/* Apple Watch 38mm - EXTRA PICCOLO */
+@media screen and (max-width: 280px) and (max-height: 350px) {
+    
+    .header h1 {
+        font-size: 12px;
+    }
+    
+    .header .subtitle {
+        font-size: 8px;
+    }
+    
+    .points-display {
+        font-size: 20px;
+    }
+    
+    .games-sets {
+        font-size: 10px;
+    }
+    
+    .voice-indicator {
+        font-size: 9px;
+    }
+    
+    .last-announcement {
+        font-size: 8px;
+    }
+    
+    .btn-team {
+        font-size: 12px;
+        padding: 10px 8px;
+        min-height: 36px;
+    }
+    
+    .btn-control {
+        font-size: 10px;
+        padding: 8px 4px;
+        min-height: 32px;
+    }
+}
+
+/* Apple Watch 45mm+ - PIÙ GRANDE */
+@media screen and (min-width: 380px) and (max-width: 500px) and (max-height: 600px) {
+    
+    .header h1 {
+        font-size: 16px;
+    }
+    
+    .header .subtitle {
+        font-size: 11px;
+    }
+    
+    .points-display {
+        font-size: 26px;
+    }
+    
+    .games-sets {
+        font-size: 13px;
+    }
+    
+    .voice-indicator {
+        font-size: 12px;
+    }
+    
+    .last-announcement {
+        font-size: 11px;
+    }
+    
+    .btn-team {
+        font-size: 15px;
+        padding: 14px 12px;
+        min-height: 44px;
+    }
+    
+    .btn-control {
+        font-size: 12px;
+        padding: 12px 8px;
+        min-height: 40px;
+    }
+}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🎾 PADEL VOICE TRACKER</h1>
+            <div class="subtitle">Arbitro Digitale Vocale</div>
+        </div>
+
+        <!-- Audio Toggle -->
+        <div class="audio-toggle" id="audioToggle">
+            🔊 Audio ON
+        </div>
+
+        <!-- Voice Status -->
+        <div class="voice-status">
+            <div class="voice-indicator" id="voiceIndicator">
+                🎤 Dì "punto rosso" o "punto blu"
+            </div>
+            <div class="last-announcement" id="lastAnnouncement">
+                Pronto per iniziare
+            </div>
+        </div>
+
+        <!-- Central Scoreboard -->
+        <div class="scoreboard">
+            <div class="points-display" id="pointsDisplay">0 - 0</div>
+            <div class="games-sets">
+                <div id="gamesDisplay">Games: 0 - 0</div>
+                <div id="setsDisplay">Sets: 0 - 0</div>
+            </div>
+            <div class="status" id="statusDisplay"></div>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <button class="btn btn-team red" id="teamRedBtn">
+                +1<br>Team Rosso
+            </button>
+            <button class="btn btn-team blue" id="teamBlueBtn">
+                +1<br>Team Blu
+            </button>
+            <button class="btn btn-control undo" id="undoBtn">
+                Undo
+            </button>
+            <button class="btn btn-control reset" id="resetBtn">
+                Reset
+            </button>
+        </div>
+
+        <!-- Team Color Legend -->
+        <div class="team-colors">
+            <div class="team-color red" title="Team Rosso"></div>
+            <div class="team-color blue" title="Team Blu"></div>
+        </div>
+    </div>
+
+    <script>
+        class PadelVoiceTracker {
+            constructor() {
+                // Stato del gioco - Sistema tennis
+                this.score = {
+                    points: [0, 0],    // Punti nel game corrente (0-3+)
+                    games: [0, 0],     // Games vinti nel set corrente
+                    sets: [0, 0]       // Sets vinti nel match
+                };
+
+                // Storia punteggio per undo
+                this.scoreHistory = [];
+
+                // Audio
+                this.audioEnabled = true;
+                this.audioContext = null;
+                this.sounds = {};
+
+                // Team colors mapping
+                this.teamColors = ['rosso', 'blu'];
+
+                // Inizializza
+                this.initAudio();
+                this.initEventListeners();
+                this.updateDisplay();
+
+                console.log('🎾 Padel Voice Tracker inizializzato');
+            }
+
+            initAudio() {
+                // Su mobile, l'audio deve essere inizializzato dopo il primo tocco
+                console.log('🔊 Audio in attesa del primo tocco utente');
+            }
+
+            createSounds() {
+                const sampleRate = 22050;
+
+                // PUNTO NORMALE - Beep semplice
+                this.sounds.point = this.createTone(800, 0.2, 0.3, sampleRate);
+                
+                // UNDO - Click rapido
+                this.sounds.undo = this.createTone(1200, 0.1, 0.2, sampleRate);
+                
+                // RESET - Noise sweep
+                this.sounds.reset = this.createNoise(0.3, 0.15, sampleRate);
+                
+                // GAME VINTO - Ding-dong
+                this.sounds.game = this.createDualTone(880, 660, 0.4, 0.3, sampleRate);
+                
+                // SET VINTO - Fanfara
+                this.sounds.set = this.createFanfare([523, 659, 783, 1047], 0.6, 0.25, sampleRate);
+                
+                // DEUCE - Tremolo
+                this.sounds.deuce = this.createTremolo(600, 0.5, 0.2, sampleRate);
+                
+                // VANTAGGIO - Sweep ascendente
+                this.sounds.advantage = this.createSweep(700, 900, 0.3, 0.25, sampleRate);
+            }
+
+            createTone(freq, duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * volume;
+                    // Fade out
+                    if (i > samples * 0.7) {
+                        data[i] *= (samples - i) / (samples * 0.3);
+                    }
+                }
+                return buffer;
+            }
+
+            createNoise(duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < samples; i++) {
+                    data[i] = (Math.random() * 2 - 1) * volume;
+                    // Smooth filtering
+                    if (i > 0) {
+                        data[i] = data[i] * 0.3 + data[i-1] * 0.7;
+                    }
+                }
+                return buffer;
+            }
+
+            createDualTone(freq1, freq2, duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    const phase = i < samples / 2 ? 0 : 1;
+                    const freq = phase === 0 ? freq1 : freq2;
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * volume;
+                }
+                return buffer;
+            }
+
+            createFanfare(freqs, duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                const segmentLength = samples / freqs.length;
+                
+                for (let i = 0; i < samples; i++) {
+                    const segment = Math.floor(i / segmentLength);
+                    const freq = freqs[Math.min(segment, freqs.length - 1)];
+                    const t = i / sampleRate;
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * volume;
+                }
+                return buffer;
+            }
+
+            createTremolo(freq, duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    const tremolo = Math.sin(2 * Math.PI * 8 * t); // 8 Hz tremolo
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * volume * tremolo;
+                }
+                return buffer;
+            }
+
+            createSweep(startFreq, endFreq, duration, volume, sampleRate) {
+                const samples = sampleRate * duration;
+                const buffer = this.audioContext.createBuffer(1, samples, sampleRate);
+                const data = buffer.getChannelData(0);
+                
+                for (let i = 0; i < samples; i++) {
+                    const t = i / sampleRate;
+                    const progress = i / samples;
+                    const freq = startFreq + (endFreq - startFreq) * progress;
+                    data[i] = Math.sin(2 * Math.PI * freq * t) * volume;
+                }
+                return buffer;
+            }
+
+            playSound(soundType) {
+                // Inizializza audio al primo utilizzo (mobile-friendly)
+                if (!this.audioContext && this.audioEnabled) {
+                    this.initAudioOnDemand();
+                }
+
+                if (!this.audioEnabled || !this.sounds[soundType]) {
+                    console.log(`🔇 Audio disabilitato o suono '${soundType}' non trovato`);
+                    return;
+                }
+
+                try {
+                    const source = this.audioContext.createBufferSource();
+                    source.buffer = this.sounds[soundType];
+                    source.connect(this.audioContext.destination);
+                    source.start();
+                    console.log(`🔊 Suono '${soundType}' riprodotto`);
+                } catch (e) {
+                    console.warn(`❌ Errore riproduzione suono ${soundType}:`, e);
+                }
+            }
+
+            initAudioOnDemand() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    this.createSounds();
+                    console.log('🔊 Sistema audio inizializzato on-demand');
+                } catch (e) {
+                    console.warn('❌ Audio non disponibile:', e);
+                    this.audioEnabled = false;
+                }
+            }
+
+            initEventListeners() {
+                console.log('🎛️ Inizializzando event listeners...');
+                
+                const teamRedBtn = document.getElementById('teamRedBtn');
+                const teamBlueBtn = document.getElementById('teamBlueBtn');
+                const undoBtn = document.getElementById('undoBtn');
+                const resetBtn = document.getElementById('resetBtn');
+                const audioToggle = document.getElementById('audioToggle');
+
+                if (!teamRedBtn || !teamBlueBtn || !undoBtn || !resetBtn || !audioToggle) {
+                    console.error('❌ Alcuni bottoni non trovati nel DOM!');
+                    return;
+                }
+
+                // Event listeners con logging
+                teamRedBtn.addEventListener('click', (e) => {
+                    console.log('🖱️ Click Team Rosso button');
+                    e.preventDefault();
+                    this.addPoint(1);
+                });
+
+                teamRedBtn.addEventListener('touchend', (e) => {
+                    console.log('👆 Touch Team Rosso button');
+                    e.preventDefault();
+                    this.addPoint(1);
+                });
+
+                teamBlueBtn.addEventListener('click', (e) => {
+                    console.log('🖱️ Click Team Blu button');
+                    e.preventDefault();
+                    this.addPoint(2);
+                });
+
+                teamBlueBtn.addEventListener('touchend', (e) => {
+                    console.log('👆 Touch Team Blu button');
+                    e.preventDefault();
+                    this.addPoint(2);
+                });
+
+                undoBtn.addEventListener('click', (e) => {
+                    console.log('🖱️ Click Undo button');
+                    e.preventDefault();
+                    this.undoLastPoint();
+                });
+
+                undoBtn.addEventListener('touchend', (e) => {
+                    console.log('👆 Touch Undo button');
+                    e.preventDefault();
+                    this.undoLastPoint();
+                });
+
+                resetBtn.addEventListener('click', (e) => {
+                    console.log('🖱️ Click Reset button');
+                    e.preventDefault();
+                    this.resetScore();
+                });
+
+                resetBtn.addEventListener('touchend', (e) => {
+                    console.log('👆 Touch Reset button');
+                    e.preventDefault();
+                    this.resetScore();
+                });
+
+                audioToggle.addEventListener('click', (e) => {
+                    console.log('🖱️ Click Audio toggle');
+                    e.preventDefault();
+                    this.toggleAudio();
+                });
+
+                audioToggle.addEventListener('touchend', (e) => {
+                    console.log('👆 Touch Audio toggle');
+                    e.preventDefault();
+                    this.toggleAudio();
+                });
+
+                console.log('✅ Event listeners inizializzati');
+
+                // Visual feedback for buttons
+                this.initButtonFeedback();
+
+                // Prevenzione zoom su doppio tap
+                document.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                }, { passive: false });
+
+                // Gestione orientamento
+                window.addEventListener('orientationchange', () => {
+                    setTimeout(() => this.updateDisplay(), 100);
+                });
+            }
+
+            initButtonFeedback() {
+                const buttons = document.querySelectorAll('.btn');
+                buttons.forEach(btn => {
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        btn.classList.add('btn-pressed');
+                    });
+                    
+                    btn.addEventListener('touchend', (e) => {
+                        setTimeout(() => {
+                            btn.classList.remove('btn-pressed');
+                        }, 300);
+                    });
+                });
+            }
+
+            getTennisScoreDisplay(points) {
+                const [team1Points, team2Points] = points;
+                
+                // Caso normale (non deuce)
+                if (team1Points < 3 && team2Points < 3) {
+                    const tennisScores = ['0', '15', '30'];
+                    return `${tennisScores[team1Points]} - ${tennisScores[team2Points]}`;
+                }
+                
+                // Almeno un giocatore ha 3+ punti
+                if (team1Points < 3) {
+                    return `${['0', '15', '30'][team1Points]} - 40`;
+                } else if (team2Points < 3) {
+                    return `40 - ${['0', '15', '30'][team2Points]}`;
+                }
+                
+                // Entrambi hanno 3+ punti
+                if (team1Points === team2Points) {
+                    return 'Deuce';
+                } else if (team1Points > team2Points) {
+                    return 'Advantage Rosso';
+                } else {
+                    return 'Advantage Blu';
+                }
+            }
+
+            isGameWon(points) {
+                const [team1Points, team2Points] = points;
+                
+                // Vittoria normale (4 punti con 2 di vantaggio)
+                if (team1Points >= 4 && team1Points >= team2Points + 2) {
+                    return 1; // Team 1 vince
+                } else if (team2Points >= 4 && team2Points >= team1Points + 2) {
+                    return 2; // Team 2 vince
+                }
+                
+                return 0; // Nessun vincitore
+            }
+
+            addPoint(team) {
+                console.log(`🎾 Aggiungendo punto a Team ${this.teamColors[team-1]}`);
+                
+                // Riattiva audio context se necessario
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+
+                // Salva stato attuale nella storia
+                const currentState = {
+                    points: [...this.score.points],
+                    games: [...this.score.games],
+                    sets: [...this.score.sets]
+                };
+                this.scoreHistory.push(currentState);
+
+                const teamIdx = team - 1;
+                const teamName = this.teamColors[teamIdx];
+                
+                // Aggiungi il punto
+                this.score.points[teamIdx] += 1;
+                
+                // Controlla se è stato raggiunto il deuce
+                if (this.score.points[0] >= 3 && this.score.points[1] >= 3) {
+                    if (this.score.points[0] === this.score.points[1]) {
+                        // Deuce raggiunto
+                        this.setStatus('🟡 DEUCE!');
+                        this.playSound('deuce');
+                        this.updateDisplay();
+                        return;
+                    } else if (Math.abs(this.score.points[0] - this.score.points[1]) === 1) {
+                        // Vantaggio
+                        this.setStatus(`🔶 VANTAGGIO Team ${teamName.toUpperCase()}!`);
+                        this.playSound('advantage');
+                        this.updateDisplay();
+                        return;
+                    }
+                }
+                
+                // Verifica se il game è vinto
+                const winner = this.isGameWon(this.score.points);
+                if (winner > 0) {
+                    // Game vinto!
+                    this.score.games[winner - 1] += 1;
+                    this.score.points = [0, 0]; // Reset punti per nuovo game
+                    
+                    this.setStatus(`🎾 GAME! Team ${this.teamColors[winner-1].toUpperCase()}`);
+                    this.playSound('game');
+                    
+                    // Controlla se il set è vinto
+                    if (this.score.games[winner - 1] >= 6 && 
+                        this.score.games[winner - 1] >= this.score.games[1 - (winner - 1)] + 2) {
+                        // Set vinto!
+                        this.score.sets[winner - 1] += 1;
+                        this.score.games = [0, 0]; // Reset games per nuovo set
+                        
+                        this.setStatus(`🏆 SET! Team ${this.teamColors[winner-1].toUpperCase()}`);
+                        this.playSound('set');
+                    }
+                } else {
+                    // Punto normale
+                    this.setStatus(`➕ PUNTO Team ${teamName.toUpperCase()}`);
+                    this.playSound('point');
+                }
+                
+                this.updateDisplay();
+                console.log(`Punto aggiunto a Team ${teamName}. Storia: ${this.scoreHistory.length} stati`);
+            }
+
+            undoLastPoint() {
+                if (this.scoreHistory.length > 0) {
+                    this.score = this.scoreHistory.pop();
+                    this.setStatus('↩️ UNDO - Punto annullato');
+                    this.playSound('undo');
+                    this.updateDisplay();
+                    console.log(`Undo completato. Storia rimanente: ${this.scoreHistory.length} stati`);
+                } else {
+                    this.setStatus('❌ Nessun punto da annullare');
+                    console.log('Nessun punto da annullare');
+                }
+            }
+
+            resetScore() {
+                this.score = {
+                    points: [0, 0],
+                    games: [0, 0],
+                    sets: [0, 0]
+                };
+                this.scoreHistory = [];
+                this.setStatus('🔄 RESET - Punteggio azzerato');
+                this.playSound('reset');
+                this.updateDisplay();
+                console.log('Punteggio resettato');
+            }
+
+            toggleAudio() {
+                this.audioEnabled = !this.audioEnabled;
+                const toggleBtn = document.getElementById('audioToggle');
+                
+                if (this.audioEnabled) {
+                    toggleBtn.textContent = '🔊 Audio ON';
+                    toggleBtn.classList.remove('disabled');
+                } else {
+                    toggleBtn.textContent = '🔇 Audio OFF';
+                    toggleBtn.classList.add('disabled');
+                }
+                
+                console.log(`🔊 Audio ${this.audioEnabled ? 'attivato' : 'disattivato'}`);
+                
+                // Inizializza audio se viene attivato per la prima volta
+                if (this.audioEnabled && !this.audioContext) {
+                    this.initAudioOnDemand();
+                }
+                
+                if (this.audioEnabled && this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }
+
+            setStatus(message) {
+                document.getElementById('statusDisplay').textContent = message;
+                console.log(`📢 Status: ${message}`);
+                
+                // Cancella il messaggio dopo 3 secondi
+                setTimeout(() => {
+                    document.getElementById('statusDisplay').textContent = '';
+                }, 3000);
+            }
+
+            updateDisplay() {
+                // Aggiorna punti
+                const pointsDisplay = this.getTennisScoreDisplay(this.score.points);
+                document.getElementById('pointsDisplay').textContent = pointsDisplay;
+                
+                // Aggiorna games
+                document.getElementById('gamesDisplay').textContent = 
+                    `Games: ${this.score.games[0]} - ${this.score.games[1]}`;
+                
+                // Aggiorna sets
+                document.getElementById('setsDisplay').textContent = 
+                    `Sets: ${this.score.sets[0]} - ${this.score.sets[1]}`;
+                
+                console.log('📊 Display aggiornato:', {
+                    points: pointsDisplay,
+                    games: `${this.score.games[0]}-${this.score.games[1]}`,
+                    sets: `${this.score.sets[0]}-${this.score.sets[1]}`
+                });
+            }
+
+            // Metodo per aggiornare voice status (sarà usato dalle estensioni vocali)
+            updateVoiceStatus(message, isListening = false) {
+                const indicator = document.getElementById('voiceIndicator');
+                indicator.textContent = message;
+                
+                if (isListening) {
+                    indicator.classList.add('listening');
+                } else {
+                    indicator.classList.remove('listening');
+                }
+            }
+
+            // Metodo per aggiornare ultimo annuncio (sarà usato dalle estensioni vocali)
+            updateLastAnnouncement(message) {
+                document.getElementById('lastAnnouncement').textContent = message;
+            }
+
+            // Metodo per ottenere testo punteggio per TTS (sarà usato dalle estensioni vocali)
+            getScoreText() {
+                const pointsText = this.getTennisScoreDisplay(this.score.points);
+                const gamesText = `${this.score.games[0]} game a ${this.score.games[1]}`;
+                const setsText = `${this.score.sets[0]} set a ${this.score.sets[1]}`;
+                
+                // Sostituisci "Advantage" con testo italiano
+                const italianPointsText = pointsText
+                    .replace('Advantage Rosso', 'Vantaggio Team Rosso')
+                    .replace('Advantage Blu', 'Vantaggio Team Blu')
+                    .replace('Deuce', 'Parità');
+                
+                return { pointsText: italianPointsText, gamesText, setsText };
+            }
+        }
+
+        // Inizializza l'app quando la pagina è caricata
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🎾 DOM caricato, inizializzando Padel Voice Tracker...');
+            try {
+                window.padelVoiceTracker = new PadelVoiceTracker();
+                console.log('✅ Padel Voice Tracker inizializzato con successo');
+    
+ // ========================================
+// WAKE LOCK MANAGEMENT (SOLO)
+// ========================================
+// SOSTITUISCI il codice Wake Lock + Battery con QUESTO codice più semplice
+
+// Estendi PadelVoiceTracker con Solo Wake Lock
+if (window.padelVoiceTracker) {
+    
+    // ====== WAKE LOCK MANAGEMENT ======
+    window.padelVoiceTracker.wakeLock = null;
+    window.padelVoiceTracker.screenAlwaysOn = false;
+    
+    // Funzione per mantenere schermo acceso
+    window.padelVoiceTracker.enableScreenWakeLock = async function() {
+        console.log('🔋 Tentativo attivazione Wake Lock...');
+        
+        try {
+            // Test supporto Wake Lock API
+            if ('wakeLock' in navigator) {
+                this.wakeLock = await navigator.wakeLock.request('screen');
+                this.screenAlwaysOn = true;
+                
+                console.log('✅ Wake Lock attivato - schermo sempre acceso');
+                this.showWakeLockStatus('✅ Schermo sempre acceso');
+                
+                // Gestione eventi Wake Lock
+                this.wakeLock.addEventListener('release', () => {
+                    console.log('⚠️ Wake Lock rilasciato');
+                    this.screenAlwaysOn = false;
+                    this.showWakeLockStatus('⚠️ Wake Lock disattivato');
+                });
+                
+                return true;
+                
+            } else {
+                console.log('❌ Wake Lock API non supportata');
+                this.showScreenLockReminder();
+                return false;
+            }
+            
+        } catch (error) {
+            console.error('❌ Errore Wake Lock:', error);
+            this.showScreenLockReminder();
+            return false;
+        }
+    };
+    
+    // Disattiva Wake Lock
+    window.padelVoiceTracker.disableScreenWakeLock = function() {
+        if (this.wakeLock) {
+            this.wakeLock.release();
+            this.wakeLock = null;
+            this.screenAlwaysOn = false;
+            console.log('🔋 Wake Lock disattivato');
+            this.showWakeLockStatus('🔋 Risparmio energetico attivo');
+        }
+    };
+    
+    // Mostra reminder manuale per impostazioni iPhone
+    window.padelVoiceTracker.showScreenLockReminder = function() {
+        console.log('💡 Mostrando reminder impostazioni schermo');
+        
+        // Crea banner reminder elegante
+        const reminderBanner = document.createElement('div');
+        reminderBanner.style.cssText = `
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 15px;
+            font-size: 13px;
+            font-weight: bold;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            max-width: 90%;
+            animation: slideDown 0.3s ease-out;
+        `;
+        
+        reminderBanner.innerHTML = `
+            📱 Per partite lunghe<br>
+            <span style="font-size: 11px; opacity: 0.9;">
+                Impostazioni → Schermo → Blocco automatico → Mai
+            </span>
+        `;
+        
+        // CSS Animation
+        if (!document.getElementById('slideDownAnimation')) {
+            const style = document.createElement('style');
+            style.id = 'slideDownAnimation';
+            style.textContent = `
+                @keyframes slideDown {
+                    from { transform: translateX(-50%) translateY(-50px); opacity: 0; }
+                    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        // Auto-remove dopo 8 secondi
+        setTimeout(() => {
+            if (reminderBanner.parentElement) {
+                reminderBanner.style.animation = 'slideDown 0.3s ease-out reverse';
+                setTimeout(() => reminderBanner.remove(), 300);
+            }
+        }, 8000);
+        
+        document.body.appendChild(reminderBanner);
+    };
+    
+    // Mostra status Wake Lock
+    window.padelVoiceTracker.showWakeLockStatus = function(message) {
+        // Aggiorna last announcement temporaneamente
+        const prevAnnouncement = document.getElementById('lastAnnouncement').textContent;
+        this.updateLastAnnouncement(message);
+        
+        setTimeout(() => {
+            this.updateLastAnnouncement(prevAnnouncement);
+        }, 3000);
+    };
+    
+    // ====== CONTROLLI UI ======
+    
+    // Crea bottone Wake Lock nella voice status
+    const voiceStatus = document.querySelector('.voice-status');
+    if (voiceStatus) {
+        const wakeLockToggle = document.createElement('button');
+        wakeLockToggle.id = 'wakeLockToggle';
+        wakeLockToggle.textContent = '🔋 Schermo Sempre Acceso';
+        wakeLockToggle.style.cssText = `
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            border: none;
+            border-radius: 10px;
+            padding: 6px 12px;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: all 0.2s ease;
+            -webkit-tap-highlight-color: transparent;
+        `;
+        
+        wakeLockToggle.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (window.padelVoiceTracker.screenAlwaysOn) {
+                window.padelVoiceTracker.disableScreenWakeLock();
+                wakeLockToggle.textContent = '🔋 Schermo Sempre Acceso';
+                wakeLockToggle.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+            } else {
+                const success = await window.padelVoiceTracker.enableScreenWakeLock();
+                if (success) {
+                    wakeLockToggle.textContent = '💤 Disattiva Schermo Acceso';
+                    wakeLockToggle.style.background = 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)';
+                }
+            }
+        });
+        
+        wakeLockToggle.addEventListener('touchend', (e) => {
+            e.preventDefault();
+        });
+        
+        // Visual feedback
+        wakeLockToggle.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            wakeLockToggle.style.transform = 'scale(0.95)';
+        });
+        
+        wakeLockToggle.addEventListener('touchend', (e) => {
+            setTimeout(() => {
+                wakeLockToggle.style.transform = 'scale(1)';
+            }, 200);
+        });
+        
+        voiceStatus.appendChild(wakeLockToggle);
+    }
+    
+    // Log di conferma
+    console.log('✅ Wake Lock Management integrato (senza battery)');
+    
+} else {
+    console.error('❌ PadelVoiceTracker non trovato per Wake Lock integration!');
+}
+} catch (error) {
+                console.error('❌ Errore inizializzazione app:', error);
+            }
+        })
+        console.log('✅ PadelVoiceTracker pronto - WebSocket sync rimosso per semplicità');
+    </script>
+    <script src="voice-controller.js"></script>
+    <script src="audio-synthesis.js"></script>
+    <!-- Aggiungi questo script prima della chiusura del </body> -->
+<script>
+    // Registrazione Service Worker per PWA
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const registration = await navigator.serviceWorker.register('/service-worker.js');
+                console.log('✅ PWA: Service Worker registrato', registration.scope);
+                
+                // Gestione aggiornamenti
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            console.log('🔄 PWA: Aggiornamento disponibile');
+                            // Potresti mostrare un banner per ricaricare l'app
+                        }
+                    });
+                });
+                
+            } catch (error) {
+                console.error('❌ PWA: Errore registrazione Service Worker:', error);
+            }
+        });
+    }
+    
+    // Prompt installazione PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+        console.log('📱 PWA: Install prompt disponibile');
+        e.preventDefault();
+        deferredPrompt = e;
+        
+        // Mostra banner installazione dopo 3 secondi
+        setTimeout(() => {
+            showInstallBanner();
+        }, 3000);
+    });
+    
+    function showInstallBanner() {
+        if (!deferredPrompt) return;
+        
+        // Crea banner installazione elegante
+        const installBanner = document.createElement('div');
+        installBanner.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideUp 0.3s ease-out;
+        `;
+        
+        installBanner.innerHTML = `
+            📱 Installa App
+            <span style="font-size: 12px; opacity: 0.8; margin-left: 5px;">Tap per installare</span>
+        `;
+        
+        // CSS Animation
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideUp {
+                from { transform: translateX(-50%) translateY(100px); opacity: 0; }
+                to { transform: translateX(-50%) translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        installBanner.addEventListener('click', async () => {
+            installBanner.remove();
+            
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`📱 PWA: User choice: ${outcome}`);
+                deferredPrompt = null;
+            }
+        });
+        
+        // Auto-remove dopo 10 secondi
+        setTimeout(() => {
+            if (installBanner.parentElement) {
+                installBanner.remove();
+            }
+        }, 10000);
+        
+        document.body.appendChild(installBanner);
+    }
+    
+    // Debug PWA status
+    window.addEventListener('appinstalled', () => {
+        console.log('🎉 PWA: App installata con successo!');
+        deferredPrompt = null;
+    });
+    </script>
+</body>
+</html>
