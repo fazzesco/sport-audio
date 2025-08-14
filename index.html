@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Padel Voice Tracker</title>
     <!-- PWA Manifest -->
 <link rel="manifest" href="manifest.json">
@@ -33,6 +33,11 @@
             -webkit-user-select: none;
             -webkit-touch-callout: none;
             height: 100vh;
+            /* Migliori performance su mobile */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            /* Prevenire zoom accidentale */
+            touch-action: manipulation;
         }
 
         .container {
@@ -42,6 +47,9 @@
             flex-direction: column;
             position: relative;
             overflow: hidden;
+            /* Migliore stabilità layout mobile */
+            min-height: 100vh;
+            min-height: -webkit-fill-available;
         }
 
         /* Header */
@@ -177,6 +185,10 @@
             position: relative;
             overflow: hidden;
             -webkit-tap-highlight-color: transparent;
+            /* Migliore interazione touch su mobile */
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
         }
 
         .btn:active {
@@ -274,16 +286,18 @@
             }
             
             .voice-status {
+                top: 90px;
                 min-width: 260px;
-                padding: 12px 15px;
+                padding: 8px 12px;
             }
             
             .voice-indicator {
-                font-size: 14px;
+                font-size: 13px;
+                margin-bottom: 6px;
             }
             
             .last-announcement {
-                font-size: 12px;
+                font-size: 11px;
             }
             
             .btn {
@@ -304,6 +318,136 @@
             .controls {
                 gap: 15px;
                 bottom: 60px;
+                /* Safe area per Safari mobile */
+                bottom: max(60px, env(safe-area-inset-bottom, 60px));
+            }
+        }
+        
+        /* Media query specifica per telefoni con altezza ridotta */
+        @media (max-width: 480px) and (max-height: 750px) {
+            .voice-status {
+                top: 75px;
+                padding: 6px 10px;
+            }
+            
+            .voice-indicator {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            
+            .last-announcement {
+                font-size: 10px;
+                min-height: 16px;
+            }
+            
+            .scoreboard {
+                padding: 20px;
+            }
+            
+            .points-display {
+                font-size: 32px;
+                margin-bottom: 10px;
+            }
+            
+            /* Bottoni vocali più compatti */
+            .voice-status button {
+                font-size: 11px !important;
+                padding: 6px 10px !important;
+                margin: 2px !important;
+                border-radius: 8px !important;
+            }
+            
+            .voice-status div:last-child {
+                margin-top: 6px !important;
+                gap: 8px !important;
+            }
+            
+            /* Wake Lock button compatto */
+            #wakeLockToggle {
+                font-size: 10px !important;
+                padding: 5px 8px !important;
+                margin-top: 4px !important;
+            }
+        }
+        
+        /* Media query per telefoni molto piccoli (iPhone SE, etc) */
+        @media (max-width: 380px) and (max-height: 680px) {
+            .voice-status {
+                top: 65px;
+                min-width: 240px;
+                padding: 5px 8px;
+            }
+            
+            .voice-indicator {
+                font-size: 11px;
+                margin-bottom: 3px;
+            }
+            
+            .last-announcement {
+                font-size: 9px;
+                min-height: 14px;
+            }
+            
+            .header {
+                top: 10px;
+            }
+            
+            .header h1 {
+                font-size: 18px;
+                margin-bottom: 3px;
+            }
+            
+            .header .subtitle {
+                font-size: 10px;
+            }
+            
+            /* Bottoni vocali ancora più compatti */
+            .voice-status button {
+                font-size: 10px !important;
+                padding: 5px 8px !important;
+                margin: 1px !important;
+            }
+            
+            .voice-status div:last-child {
+                margin-top: 4px !important;
+                gap: 6px !important;
+            }
+            
+            /* Wake Lock button ancora più compatto */
+            #wakeLockToggle {
+                font-size: 9px !important;
+                padding: 4px 6px !important;
+                margin-top: 3px !important;
+            }
+        }
+        
+        /* Regole specifiche per Safari mobile e iPhone */
+        @media (max-width: 480px) {
+            .controls {
+                /* Maggiore spazio dal fondo per Safari */
+                bottom: max(80px, env(safe-area-inset-bottom, 80px)) !important;
+                padding-bottom: env(safe-area-inset-bottom, 20px);
+            }
+            
+            /* Assicura che i bottoni siano sempre accessibili */
+            .btn-control, .btn-team {
+                min-height: 44px !important; /* Apple touch target guidelines */
+            }
+        }
+        
+        /* Media query specifica per iPhone con tacca (iPhone X e successivi) */
+        @media (max-width: 480px) and (max-height: 900px) and (-webkit-device-pixel-ratio: 3) {
+            .controls {
+                bottom: max(100px, calc(env(safe-area-inset-bottom, 20px) + 80px)) !important;
+            }
+        }
+        
+        /* Supporto per older Safari versions */
+        @supports not (padding: max(0px)) {
+            @media (max-width: 480px) {
+                .controls {
+                    bottom: 100px !important;
+                }
             }
         }
 
@@ -331,7 +475,8 @@
             }
             
             .controls {
-                bottom: 40px;
+                bottom: max(40px, env(safe-area-inset-bottom, 40px));
+                padding-bottom: env(safe-area-inset-bottom, 10px);
             }
             
             .btn-team {
@@ -1112,16 +1257,28 @@
             }
 
             resetScore() {
-                this.score = {
-                    points: [0, 0],
-                    games: [0, 0],
-                    sets: [0, 0]
-                };
-                this.scoreHistory = [];
-                this.setStatus('🔄 RESET - Punteggio azzerato');
-                this.playSound('reset');
-                this.updateDisplay();
-                console.log('Punteggio resettato');
+                // Conferma reset per evitare cancellazioni accidentali
+                const currentScore = this.getTennisScoreDisplay(this.score.points);
+                const games = `${this.score.games[0]}-${this.score.games[1]}`;
+                const sets = `${this.score.sets[0]}-${this.score.sets[1]}`;
+                
+                const confirmMessage = `🔄 CONFERMA RESET\n\nPunteggio attuale:\n${currentScore}\nGames: ${games}\nSets: ${sets}\n\nSei sicuro di voler azzerare tutto?`;
+                
+                if (confirm(confirmMessage)) {
+                    this.score = {
+                        points: [0, 0],
+                        games: [0, 0],
+                        sets: [0, 0]
+                    };
+                    this.scoreHistory = [];
+                    this.setStatus('🔄 RESET - Punteggio azzerato');
+                    this.playSound('reset');
+                    this.updateDisplay();
+                    console.log('Punteggio resettato dopo conferma');
+                } else {
+                    this.setStatus('❌ Reset annullato');
+                    console.log('Reset annullato dall\'utente');
+                }
             }
 
             toggleAudio() {
