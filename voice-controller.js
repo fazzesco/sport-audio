@@ -402,23 +402,6 @@ class VoiceController {
             -webkit-tap-highlight-color: transparent;
         `;
         
-        // NUOVO: Bottone stats per debugging
-        const statsBtn = document.createElement('button');
-        statsBtn.id = 'voiceStats'; 
-        statsBtn.className = 'voice-stats-btn';
-        statsBtn.textContent = '📊 Stats';
-        statsBtn.style.cssText = `
-            background: linear-gradient(135deg, #795548 0%, #5d4037 100%);
-            border: none;
-            border-radius: 10px;
-            padding: 8px 16px;
-            color: white;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            -webkit-tap-highlight-color: transparent;
-        `;
         
         // Event listeners
         voiceToggle.addEventListener('click', (e) => {
@@ -441,18 +424,9 @@ class VoiceController {
             this.showHelp();
         });
         
-        statsBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            this.showStats();
-        });
-        
-        statsBtn.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.showStats();
-        });
         
         // Visual feedback
-        [voiceToggle, infoBtn, statsBtn].forEach(btn => {
+        [voiceToggle, infoBtn].forEach(btn => {
             btn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 btn.style.transform = 'scale(0.95)';
@@ -467,7 +441,6 @@ class VoiceController {
         
         toggleContainer.appendChild(voiceToggle);
         toggleContainer.appendChild(infoBtn);
-        toggleContainer.appendChild(statsBtn);
         voiceStatus.appendChild(toggleContainer);
         
         console.log('🎤 UI controlli vocali ottimizzati creati');
